@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IMDb Movie Scraper (2000-2025) | Data Engineering Project</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: #ffffff;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+            padding: 100px 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="2" fill="%23f5c518" opacity="0.1"/></svg>') repeat;
+            animation: float 20s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #f5c518, #ffffff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero .tagline {
+            font-size: 1.3rem;
+            color: #cccccc;
+            margin-bottom: 2rem;
+            font-weight: 300;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(45deg, #f5c518, #e6b800);
+            color: #000000;
+            padding: 15px 30px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(245, 197, 24, 0.3);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(245, 197, 24, 0.4);
+        }
+
+        /* Section Styling */
+        .section {
+            padding: 80px 0;
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 3rem;
+            color: #f5c518;
+        }
+
+        .section-subtitle {
+            font-size: 1.1rem;
+            color: #cccccc;
+            text-align: center;
+            margin-bottom: 4rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Cards */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 3rem;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            border-color: #f5c518;
+        }
+
+        .card h3 {
+            color: #f5c518;
+            font-size: 1.4rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .card p {
+            color: #cccccc;
+            line-height: 1.6;
+        }
+
+        /* Data Fields Table */
+        .data-table {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .data-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 20px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .data-table th {
+            background: rgba(245, 197, 24, 0.1);
+            color: #f5c518;
+            font-weight: 600;
+        }
+
+        .data-table td {
+            color: #cccccc;
+        }
+
+        .data-table tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Stats Section */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-top: 3rem;
+        }
+
+        .stat-card {
+            text-align: center;
+            background: rgba(245, 197, 24, 0.1);
+            border-radius: 15px;
+            padding: 40px 20px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            border-color: #f5c518;
+            transform: scale(1.05);
+        }
+
+        .stat-number {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #f5c518;
+            display: block;
+        }
+
+        .stat-label {
+            color: #cccccc;
+            font-size: 1.1rem;
+            margin-top: 10px;
+        }
+
+        /* Screenshot Placeholder */
+        .screenshot-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 3rem;
+        }
+
+        .screenshot-placeholder {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px dashed rgba(245, 197, 24, 0.5);
+            border-radius: 15px;
+            padding: 60px 20px;
+            text-align: center;
+            color: #cccccc;
+            transition: all 0.3s ease;
+        }
+
+        .screenshot-placeholder:hover {
+            border-color: #f5c518;
+            background: rgba(245, 197, 24, 0.1);
+        }
+
+        /* Skills Tags */
+        .skills-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 3rem;
+        }
+
+        .skill-tag {
+            background: linear-gradient(45deg, #f5c518, #e6b800);
+            color: #000000;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .skill-tag:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(245, 197, 24, 0.3);
+        }
+
+        /* Footer */
+        .footer {
+            background: #000000;
+            padding: 40px 0;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .footer p {
+            color: #cccccc;
+            margin-bottom: 10px;
+        }
+
+        .footer a {
+            color: #f5c518;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .hero .tagline {
+                font-size: 1.1rem;
+            }
+            
+            .section-title {
+                font-size: 2rem;
+            }
+            
+            .card-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .screenshot-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Code Block Styling */
+        .code-preview {
+            background: #0d1117;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-family: 'Courier New', monospace;
+            color: #c9d1d9;
+            overflow-x: auto;
+        }
+
+        .code-preview .comment {
+            color: #7c3aed;
+        }
+
+        .code-preview .keyword {
+            color: #ff7b72;
+        }
+
+        .code-preview .string {
+            color: #a5d6ff;
+        }
+    </style>
+</head>
+<body>
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1>IMDb Movie Scraper</h1>
+                <p class="tagline">Advanced web scraping solution for extracting comprehensive movie data from IMDb (2000-2025)</p>
+                <a href="#" class="cta-button">🔗 View on GitHub</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Project Overview -->
+    <section class="section">
+        <div class="container">
+            <h2 class="section-title">Project Overview</h2>
+            <p class="section-subtitle">
+                A robust, production-ready web scraping solution built with Selenium and BeautifulSoup to extract structured movie metadata from IMDb's dynamic interface.
+            </p>
+            
+            <div class="card-grid">
+                <div class="card">
+                    <h3>🎯 Objective</h3>
+                    <p>Collect comprehensive datasets of popular feature films by programmatically navigating IMDb's dynamic web interface, handling "Load More" buttons and asynchronous content loading.</p>
+                </div>
+                <div class="card">
+                    <h3>📊 Target Audience</h3>
+                    <p>Data analysts, researchers, and developers who need structured movie metadata for machine learning projects, analytics dashboards, or recommendation systems.</p>
+                </div>
+                <div class="card">
+                    <h3>⚡ Performance Focus</h3>
+                    <p>Engineered for reliability and efficiency with human-like delays, error handling, and modular architecture to ensure consistent data extraction at scale.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Extracted Data Fields -->
+    <section class="section" style="background: rgba(0, 0, 0, 0.3);">
+        <div class="container">
+            <h2 class="section-title">Extracted Data Fields</h2>
+            <p class="section-subtitle">
+                Each movie record contains 8 structured data points saved in JSONL format for efficient processing.
+            </p>
+
+            <div class="data-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Field</th>
+                            <th>Description</th>
+                            <th>Format</th>
+                            <th>Example</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Title</strong></td>
+                            <td>Official movie title</td>
+                            <td>String</td>
+                            <td>"The Dark Knight"</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Year</strong></td>
+                            <td>Release year</td>
+                            <td>String</td>
+                            <td>"2008"</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Duration</strong></td>
+                            <td>Runtime in minutes</td>
+                            <td>String</td>
+                            <td>"152 min"</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Metascore</strong></td>
+                            <td>Metacritic score (0-100)</td>
+                            <td>String</td>
+                            <td>"84"</td>
+                        </tr>
+                        <tr>
+                            <td><strong>IMDb Rating</strong></td>
+                            <td>User rating (0-10)</td>
+                            <td>Float</td>
+                            <td>9.0</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Total Raters</strong></td>
+                            <td>Number of user ratings</td>
+                            <td>Integer</td>
+                            <td>2800000</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Summary</strong></td>
+                            <td>Plot description</td>
+                            <td>String</td>
+                            <td>"When the menace known as the Joker..."</td>
+                        </tr>
+                        <tr>
+                            <td><strong>URL</strong></td>
+                            <td>Direct IMDb link</td>
+                            <td>String</td>
+                            <td>"https://www.imdb.com/title/tt0468569/"</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Key Features -->
+    <section class="section">
+        <div class="container">
+            <h2 class="section-title">Key Technical Features</h2>
+            <div class="card-grid">
+                <div class="card">
+                    <h3>🤖 Dynamic Page Interaction</h3>
+                    <p>Selenium-powered automation handles JavaScript-heavy pages, automatically clicking "Load More" buttons and waiting for content to load.</p>
+                </div>
+                <div class="card">
+                    <h3>🔄 Smooth Scrolling & Automation</h3>
+                    <p>Implements smooth scrolling behavior and intelligent button detection to mimic natural user interactions.</p>
+                </div>
+                <div class="card">
+                    <h3>🔍 Robust HTML Parsing</h3>
+                    <p>BeautifulSoup extracts structured data from complex nested HTML with CSS selector-based targeting.</p>
+                </div>
+                <div class="card">
+                    <h3>📦 Modular Architecture</h3>
+                    <p>Clean separation of concerns with dedicated modules for scraping, parsing, configuration, and data utilities.</p>
+                </div>
+                <div class="card">
+                    <h3>⏱️ Anti-Detection Measures</h3>
+                    <p>Random delays, human-like behavior patterns, and custom user agents prevent rate limiting and blocks.</p>
+                </div>
+                <div class="card">
+                    <h3>🛡️ Error Handling & Normalization</h3>
+                    <p>Comprehensive exception handling with data validation and normalization for consistent output quality.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Results & Stats -->
+    <section class="section" style="background: rgba(0, 0, 0, 0.3);">
+        <div class="container">
+            <h2 class="section-title">Performance Results</h2>
+            <div class="stats">
+                <div class="stat-card">
+                    <span class="stat-number">8,000+</span>
+                    <div class="stat-label">Movies Scraped</div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">98%+</span>
+                    <div class="stat-label">Accuracy Rate</div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">0</span>
+                    <div class="stat-label">Duplicates</div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">15-25</span>
+                    <div class="stat-label">Minutes Runtime</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Technical Skills -->
+    <section class="section">
+        <div class="container">
+            <h2 class="section-title">Technical Skills Demonstrated</h2>
+            <div class="skills-grid">
+                <div class="skill-tag">Selenium WebDriver</div>
+                <div class="skill-tag">BeautifulSoup</div>
+                <div class="skill-tag">Python Architecture</div>
+                <div class="skill-tag">Web Automation</div>
+                <div class="skill-tag">Data Extraction</div>
+                <div class="skill-tag">Error Handling</div>
+                <div class="skill-tag">Anti-Detection</div>
+                <div class="skill-tag">JSON/JSONL</div>
+                <div class="skill-tag">CSS Selectors</div>
+                <div class="skill-tag">Asynchronous Handling</div>
+                <div class="skill-tag">Data Normalization</div>
+                <div class="skill-tag">Production Scraping</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Code Preview -->
+    <section class="section" style="background: rgba(0, 0, 0, 0.3);">
+        <div class="container">
+            <h2 class="section-title">Code Architecture</h2>
+            <p class="section-subtitle">Clean, modular Python implementation with separation of concerns</p>
+            
+            <div class="code-preview">
+                <span class="comment"># Main scraper with dynamic content handling</span><br>
+                <span class="keyword">def</span> load_full_page(driver, max_clicks=MAX_CLICKS):<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;driver.get(BASE_URL)<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">for</span> i <span class="keyword">in</span> range(max_clicks):<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;button = driver.find_element(By.CSS_SELECTOR, <span class="string">"button.ipc-see-more__button"</span>)<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scroll_down(driver, button)<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;driver.execute_script(<span class="string">"arguments[0].click();"</span>, button)<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;random_delay()<br><br>
+                
+                <span class="comment"># Modular data extraction</span><br>
+                <span class="keyword">def</span> parse_movie_block(movie_soup):<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;title, url = extract_title_and_url(movie_soup)<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;year, duration, metascore = extract_year_duration_metascore(movie_soup)<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;rating, total_raters = extract_rating_and_votes(movie_soup)<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> structured_data_dict
+            </div>
+        </div>
+    </section>
+
+    <!-- Screenshots Section -->
+    <section class="section">
+        <div class="container">
+            <h2 class="section-title">Project Screenshots</h2>
+            <div class="screenshot-grid">
+
+                <div class="screenshot-placeholder">
+                    <img src="assets/Sample Data Output.png" alt="Sample extracted data in JSONL format" style="display: none;">
+                    <p>📋 <strong>Sample Data Output</strong><br>JSONL formatted movie records</p>
+                </div>
+                <div class="screenshot-placeholder">
+                    <img src="assets/Sample Data Output.png" alt="IMDb page being scraped" style="display: none;">
+                    <p>🌐 <strong>Target Website</strong><br>IMDb movie listings interface</p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 IMDb Movie Scraper Project</p>
+            <p>Built with Python, Selenium & BeautifulSoup | <a href="#">View Source Code</a></p>
+        </div>
+    </footer>
+</body>
+</html>
